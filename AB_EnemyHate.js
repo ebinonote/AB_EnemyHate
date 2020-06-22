@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.13
+// Version: 1.14
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.13 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.14 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -204,6 +204,15 @@
  * @desc ヘイトゲージのメンバーごとのY座標の位置です。
  * index:メンバーの番号、length:メンバーの人数
  * @default  400
+ * 
+ * @param ShowEnemyNameOnHateGauge
+ * @text 敵キャラ名表示（ヘイトゲージ）
+ * @parent ---HateGauge---
+ * @type boolean
+ * @on はい
+ * @off いいえ
+ * @desc ヘイトゲージで敵キャラ名を表示しますか？
+ * @default  true
  * 
  * @help
  * ============================================================================
@@ -550,6 +559,14 @@
  * 更新履歴
  * ============================================================================
  * 
+ * Version 1.14
+ * ヘイトラインをONにしてもヘイトラインが表示されない不具合を修正しました。
+ * 戦闘中に敵キャラを攻撃対象にした時に対象にした敵のヘイトゲージが表示されるよ
+ * うにしました。
+ * 戦闘終了時、ヘイトゲージが非表示になるようにしました。
+ * ヘイトゲージの敵キャラ名を非表示にできるようにしました。
+ * 敵キャラクターを選択した時以外非表示にしました。
+ * 
  * Version 1.13
  *   パーティリストと敵リストを作りました。
  *   
@@ -621,8 +638,8 @@
 
 (function() {
 	var parameters = PluginManager.parameters('AB_EnemyHate');
-	var displayHateLine = (parameters['DisplayHateLine'] == 1) ? true : false;
-	var HateDebugMode = (parameters['DebugMode'] == 1) ? true : false;
+	var displayHateLine = eval(parameters['DisplayHateLine']);
+	var HateDebugMode = eval(parameters['DebugMode']);
 	var DamageHateFormula = (parameters['DamageHateFormula'] || 0);
 	var MPDamageHateFormula = (parameters['MPDamageHateFormula'] || 0);
 	var HealHateFormula = (parameters['HealHateFormula'] || 0);
@@ -631,7 +648,7 @@
 	var StateToEnemyHateFormula = (parameters['StateToEnemyHateFormula'] || 0);
 	var StateToActorHateFormula = (parameters['StateToActorHateFormula'] || 0);
 	var RemoveStateHateFormula = (parameters['RemoveStateHateFormula'] || 0);
-	var ReduceOthersHate = (parameters['ReduceOthersHate'] == 1) ? true : false;
+	var ReduceOthersHate = eval(parameters['ReduceOthersHate'] == 1);
 	var OthersHateRateFormula = (parameters['OthersHateRateFormula'] || 0);
 	var ShowEnemyList = eval(parameters['ShowEnemyList']);
 	var EnemyListX = Number(parameters['EnemyListX']);
@@ -646,6 +663,7 @@
 	var HateGaugeWidth = Number(parameters['HateGaugeWidth']);
 	var HateGaugeX = String(parameters['HateGaugeX']);
 	var HateGaugeY = String(parameters['HateGaugeY']);
+	var ShowEnemyNameOnHateGauge = eval(parameters['ShowEnemyNameOnHateGauge']);
 
 //=============================================================================
 // Game_Interpreter
@@ -1787,8 +1805,10 @@ Sprite_Actor.prototype.updatePosition = function() {
 
 	Window_ABHateGauge.prototype.setEnemyAndShow = function(enemy) {
 		this._enemy = enemy;
-		this.refresh();
 		this.show();
+		this.refresh();
+			console.log("setEnemyAndShow 1809");
+		this.open();
 	};
 
 	Window_ABHateGauge.prototype.refresh = function() {
@@ -1817,7 +1837,9 @@ Sprite_Actor.prototype.updatePosition = function() {
 		if (!rate) rate = 0;
 		this.drawGauge(32, 0, cw-32, rate, color1, color2);
 	
-		this.drawText(enemy.name(), 32, 0, cw-32);
+		if (ShowEnemyNameOnHateGauge) {
+			this.drawText(enemy.name(), 32, 0, cw-32);
+		}
 		//y += this.lineHeight();
 	
 	};
@@ -1869,26 +1891,45 @@ Sprite_Actor.prototype.updatePosition = function() {
 				this.hateGaugeWindows[i].setEnemyAndShow(enemy);
 			}
 			this.addWindow(this.hateGaugeWindows[i]);
+			this.hateGaugeWindows[i].hide();
 		}
 	}
+var _Scene_Battle_prototype_startPartyCommandSelection = Scene_Battle.prototype.startPartyCommandSelection;
+Scene_Battle.prototype.startPartyCommandSelection = function() {
+    _Scene_Battle_prototype_startPartyCommandSelection.call(this);
+		if (this.hateGaugeWindows) this.hideHateWindow();
+};
 
 	var _Scene_Battle_prototype_startActorCommandSelection = Scene_Battle.prototype.startActorCommandSelection;
 	Scene_Battle.prototype.startActorCommandSelection = function() {
-			_Scene_Battle_prototype_startActorCommandSelection.call(this);
-			if (!$gameSystem.isDispEnemyHateList()) return;
-			this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+		_Scene_Battle_prototype_startActorCommandSelection.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+		if (this.hateGaugeWindows) this.hideHateWindow();
 	};
 	var _Scene_Battle_prototype_onSkillCancel = Scene_Battle.prototype.onSkillCancel;
 	Scene_Battle.prototype.onSkillCancel = function() {
     _Scene_Battle_prototype_onSkillCancel.call(this);
 		if (!$gameSystem.isDispEnemyHateList()) return;
 		this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+		//if (this.hateGaugeWindows) this.hideHateWindow();
 	};
 	var _Scene_Battle_prototype_onItemCancel = Scene_Battle.prototype.onItemCancel;
 	Scene_Battle.prototype.onItemCancel = function() {
 		_Scene_Battle_prototype_onItemCancel.call(this);
 		if (!$gameSystem.isDispEnemyHateList()) return;
 		this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+		//if (this.hateGaugeWindows) this.hideHateWindow();
+	};
+	var _Scene_Battle_prototype_onEnemyCancel = Scene_Battle.prototype.onEnemyCancel;
+	Scene_Battle.prototype.onEnemyCancel = function() {
+		_Scene_Battle_prototype_onEnemyCancel.call(this);
+		if (this.hateGaugeWindows) this.hideHateWindow();
+	};
+	var _Scene_Battle_prototype_onEnemyOk = Scene_Battle.prototype.onEnemyOk;
+	Scene_Battle.prototype.onEnemyOk = function() {
+		_Scene_Battle_prototype_onEnemyOk.call(this);
+		if (this.hateGaugeWindows) this.hideHateWindow();
 	};
 
 
@@ -1897,6 +1938,7 @@ Sprite_Actor.prototype.updatePosition = function() {
     _Scene_Battle_prototype_endCommandSelection.call(this);
 		if (!$gameSystem.isDispEnemyHateList()) return;
 		this._ABEnemyListWindow.hide();
+		//if (this.hateGaugeWindows) this.hideHateWindow();
 	};
 
 
@@ -1904,8 +1946,10 @@ Sprite_Actor.prototype.updatePosition = function() {
 		if (this._ABEnemyListWindow) this._ABEnemyListWindow.setActorAndShow(actor);
 	};
 	Scene_Battle.prototype.selectEnemy = function(enemy) {
+		if (!enemy) return;
 		if (this._ABEnemyListWindow) this._ABEnemyListWindow.setEnemyAndShow(enemy);
 		if (this.hateGaugeWindows) this.setEnemyToAllHateGaugeWindow(enemy);
+			console.log("Scene_Battle.selectEnemy() 1943"+ enemy.name());
 	};
 	Scene_Battle.prototype.refreshHateWindow = function() {
 		if (this._ABEnemyListWindow) this._ABEnemyListWindow.refresh();
@@ -1917,13 +1961,23 @@ Sprite_Actor.prototype.updatePosition = function() {
 		if (!this.hateGaugeWindows) return;
 		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
 			this.hateGaugeWindows[i].setEnemyAndShow(enemy);
+			console.log("Scene_Battle.setEnemyToAllHateGaugeWindow() 1955");
 		}
 	};
 	Scene_Battle.prototype.refreshAllHateGaugeWindow = function() {
 		if (!this.hateGaugeWindows) return;
 		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
 			this.hateGaugeWindows[i].refresh();
+			//this.hateGaugeWindows[i].show();
 		}
+	};
+	Scene_Battle.prototype.hideHateWindow = function() {
+		if (!this.hateGaugeWindows) return;
+		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
+			this.hateGaugeWindows[i].hide();
+			
+		}
+		console.log("hide");
 	};
 
 	var _Scene_Battle_prototype_commandSkill = Scene_Battle.prototype.commandSkill;
@@ -1933,11 +1987,11 @@ Sprite_Actor.prototype.updatePosition = function() {
 		this._ABEnemyListWindow.hide();
 	};
 	var _Scene_Battle_prototype_commandItem = Scene_Battle.prototype.commandItem;
-Scene_Battle.prototype.commandItem = function() {
-    _Scene_Battle_prototype_commandItem.call(this);
-		if (!$gameSystem.isDispEnemyHateList()) return;
-		this._ABEnemyListWindow.hide();
-};
+	Scene_Battle.prototype.commandItem = function() {
+	    _Scene_Battle_prototype_commandItem.call(this);
+			if (!$gameSystem.isDispEnemyHateList()) return;
+			this._ABEnemyListWindow.hide();
+	};
 //=============================================================================
 // BattleManager
 //=============================================================================
@@ -1951,18 +2005,21 @@ var _BattleManager_startAction = BattleManager.startAction;
 BattleManager.startAction = function() {
     _BattleManager_startAction.call(this);
 		var subject = this._subject;
+		var target = this._targets[0]
 		if (subject.isActor()) {
 			SceneManager._scene.selectActor(subject);
 		}
 		if (subject.isEnemy()) {
 			SceneManager._scene.selectEnemy(subject);
 		}
+		this.updateHateGauge(subject, target);
 };
 var _BattleManager_invokeAction = BattleManager.invokeAction;
 BattleManager.invokeAction = function(subject, target) {
 	_BattleManager_invokeAction.call(this, subject, target);
 	
 	    SceneManager._scene.refreshHateWindow();
+		this.updateHateGauge(subject, target);
 };
 /*
 	var _BattleManager_endAction = BattleManager.endAction
@@ -1974,6 +2031,28 @@ BattleManager.invokeAction = function(subject, target) {
 	};
 
 */
+
+var _BattleManager_processVictory = BattleManager.processVictory
+
+BattleManager.processVictory = function() {
+		_BattleManager_processVictory.call(this);
+    SceneManager._scene.hideHateWindow();
+};
+
+/*
+	var _BattleManager_invokeAction = BattleManager.invokeAction;
+	BattleManager.invokeAction = function(subject, target) {
+		_BattleManager_invokeAction(subject, target);
+	};
+*/
+	BattleManager.updateHateGauge = function(subject, target) {
+		if (target.isEnemy()) {
+			console.log("target is enemy 2037");
+			SceneManager._scene.selectEnemy(target);
+		}
+		
+	};
+
 //=============================================================================
 // Window_BattleEnemy
 //=============================================================================
