@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.14
+// Version: 1.15
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.14 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.15 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -558,6 +558,9 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.15
+ *   攻撃時、エラーが出てゲームが停止してしまう不具合を修正しました。
  * 
  * Version 1.14
  * ヘイトラインをONにしてもヘイトラインが表示されない不具合を修正しました。
@@ -1807,7 +1810,6 @@ Sprite_Actor.prototype.updatePosition = function() {
 		this._enemy = enemy;
 		this.show();
 		this.refresh();
-			console.log("setEnemyAndShow 1809");
 		this.open();
 	};
 
@@ -1949,7 +1951,6 @@ Scene_Battle.prototype.startPartyCommandSelection = function() {
 		if (!enemy) return;
 		if (this._ABEnemyListWindow) this._ABEnemyListWindow.setEnemyAndShow(enemy);
 		if (this.hateGaugeWindows) this.setEnemyToAllHateGaugeWindow(enemy);
-			console.log("Scene_Battle.selectEnemy() 1943"+ enemy.name());
 	};
 	Scene_Battle.prototype.refreshHateWindow = function() {
 		if (this._ABEnemyListWindow) this._ABEnemyListWindow.refresh();
@@ -1961,7 +1962,6 @@ Scene_Battle.prototype.startPartyCommandSelection = function() {
 		if (!this.hateGaugeWindows) return;
 		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
 			this.hateGaugeWindows[i].setEnemyAndShow(enemy);
-			console.log("Scene_Battle.setEnemyToAllHateGaugeWindow() 1955");
 		}
 	};
 	Scene_Battle.prototype.refreshAllHateGaugeWindow = function() {
@@ -1977,7 +1977,6 @@ Scene_Battle.prototype.startPartyCommandSelection = function() {
 			this.hateGaugeWindows[i].hide();
 			
 		}
-		console.log("hide");
 	};
 
 	var _Scene_Battle_prototype_commandSkill = Scene_Battle.prototype.commandSkill;
@@ -2046,8 +2045,8 @@ BattleManager.processVictory = function() {
 	};
 */
 	BattleManager.updateHateGauge = function(subject, target) {
+		if (!target) return;
 		if (target.isEnemy()) {
-			console.log("target is enemy 2037");
 			SceneManager._scene.selectEnemy(target);
 		}
 		
