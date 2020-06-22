@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.02
+// Version: 1.03
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -232,6 +232,18 @@
  *     前述のヘイトを増減させるタグは無効化しません。
  * 
  * ============================================================================
+ * ヘイトが溜まらなくなるエネミーのステート
+ * ============================================================================
+ * 
+ * 例えば、「睡眠」など、状況が把握できなくなるステートにかかったとき、状況が
+ * 把握できないはずなのにヘイトが溜まってしまうのはおかしく感じられます。
+ * 
+ * ステートのメモ：
+ *   <HATE_cantHate>
+ *     このタグをつけると、このステートにかかったエネミーのヘイトが変動しなく
+ *     なります。
+ * 
+ * ============================================================================
  * ヘイトの確認方法
  * ============================================================================
  * 
@@ -298,6 +310,9 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.03
+ *   ステートのメモタグ<HATE_cantHate>を追加しました。
  * 
  * Version 1.02
  *   YEP_BattleEnginCore.js と一緒に動作させたときヘイトラインがチカチカする
@@ -383,6 +398,15 @@
 		});
 		return mainTarget;
 	}
+
+	Game_Enemy.prototype.canHate = function() {
+		return !this._states.some(function(stateId){
+			var state = $dataStates[stateId];
+			if (!state) return false;
+			if (state.meta.HATE_cantHate) return true;
+			return false;
+		});
+	};
 
 //=============================================================================
 // Game_Party
@@ -498,6 +522,8 @@
 		var damage = Math.max(result.hpDamage, 0);
 		var MPDamage = Math.max(result.mpDamage, 0);
 
+		if (!enemy.canHate()) return;
+
 		if (damage) {
 			var add = 0;
 			try {
@@ -607,6 +633,8 @@
 			var hate = 0;
 			var enemy = enemies[i];
 	
+			if (!enemy.canHate()) continue;
+
 			if (healPoint) {
 				var add = 0;
 				try {
@@ -767,6 +795,7 @@
 			}
 			
 			enemies.forEach(function(enemy) {
+				if (!enemy.canHate()) return;
 				try {
 					hate = eval(HATE_formula);
 					if (isNaN(hate)) {
@@ -824,6 +853,7 @@
 			}
 
 			enemies.forEach(function(enemy) {
+				if (!enemy.canHate()) return;
 				try {
 					hate = eval(HATE_formula);
 					if (isNaN(hate)) {
@@ -882,6 +912,7 @@
 			}
 
 			enemies.forEach(function(enemy) {
+				if (!enemy.canHate()) return;
 				try {
 					hate = eval(HATE_formula);
 					if (isNaN(hate)) {
