@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.09
+// Version: 1.10
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.09 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.10 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -85,6 +85,15 @@
  * 
  * 敵がアクターに対しヘイトを持ち、最もヘイトの高いアクターを狙うようになります。
  * ヘイトはバトル中の行動で変化します。
+ * 
+ * ============================================================================
+ * プラグインコマンド - v1.10
+ * ============================================================================
+ * 
+ * ShowHateLine
+ *   ヘイトラインを表示します。
+ * HideHateLine
+ *   ヘイトラインを非表示にします。
  * 
  * ============================================================================
  * 自動的にたまるヘイト
@@ -376,6 +385,9 @@
  * 更新履歴
  * ============================================================================
  * 
+ * Version 1.10
+ *   ヘイトラインを表示・非表示するプラグインコマンドを実装しました。
+ * 
  * Version 1.09
  *   ヘイトがX番目に高いアクターを狙うスキルのタグ<HATE_target: x>を追加しまし
  *   た。
@@ -444,6 +456,40 @@
 	var RemoveStateHateFormula = (parameters['RemoveStateHateFormula'] || 0);
 	var ReduceOthersHate = (parameters['ReduceOthersHate'] == 1) ? true : false;
 	var OthersHateRateFormula = (parameters['OthersHateRateFormula'] || 0);
+
+//=============================================================================
+// Game_Interpreter
+//=============================================================================
+
+	var _Game_Interpreter_pluginCommand = Game_Interpreter.prototype.pluginCommand;
+	Game_Interpreter.prototype.pluginCommand = function(command, args) {
+		_Game_Interpreter_pluginCommand.call(this, command, args);
+		if (command === 'ShowHateLine') {
+			$gameSystem.setDispHateLine(true);
+		} else if (command === 'HideHateLine') {
+			$gameSystem.setDispHateLine(false);
+		}
+	};
+
+// v1.10
+//=============================================================================
+// Game_System
+//=============================================================================
+
+	Game_System.prototype.initDispHateLine = function() {
+		this._dispHateLine = displayHateLine;
+	};
+
+	Game_System.prototype.setDispHateLine = function(value) {
+		this._dispHateLine = value;
+	};
+
+	Game_System.prototype.isDispHateLine = function() {
+		if (this._dispHateLine === undefined) this.initDispHateLine();
+		return this._dispHateLine;
+	};
+
+
 //=============================================================================
 // Game_Enemy
 //=============================================================================
@@ -1145,7 +1191,8 @@
 //=============================================================================
 // displayHateLine
 //=============================================================================
-	if(displayHateLine) {
+// v1.10からコメントアウト
+//	if(displayHateLine) {
 //=============================================================================
 // HateLine
 //=============================================================================
@@ -1224,7 +1271,14 @@
 			this.show();
 			this.updateBindSprites();
 			this.updatePosition();
+			// v1.10
+			this.updateVisible();
 		};
+		// v1.10
+		HateLine.prototype.updateVisible = function() {
+			this.visible = $gameSystem.isDispHateLine();
+		};
+
 //=============================================================================
 // Spriteset_Battle
 //=============================================================================
@@ -1246,7 +1300,7 @@
 			/*if ($gameSystem.isSideView())*/ this.createHateLines();
 		}
 		
-	}
+//	}
 
 
 
