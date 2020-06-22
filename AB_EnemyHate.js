@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.10
+// Version: 1.12
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.10 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.12 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -385,6 +385,14 @@
  * 更新履歴
  * ============================================================================
  * 
+ * Version 1.12
+ *   ヘイトがマイナスの値のとき、ゲームが止まってしまうことがあるバグを修正しま
+ *   した。
+ * 
+ * Version 1.11
+ *   フロントビューでYEP_BattleStatusWindowを使っているとき、ステータス画面に向
+ *   けてラインを伸ばすようにしました。
+ * 
  * Version 1.10
  *   ヘイトラインを表示・非表示するプラグインコマンドを実装しました。
  * 
@@ -563,7 +571,7 @@
 			return false;
 		}
 		var hates = this._hates;
-		var max = -1;
+		var max = -99999999999999999999;
 		var mainTarget;
 		group.forEach(function(member) {
 			if (!member.isActor()) return false;
@@ -652,6 +660,24 @@
 		}
 		return who;
 	}
+	
+//=============================================================================
+// Sprite_Battler
+//=============================================================================
+
+var _Sprite_Battler_prototype_updatePosition = Sprite_Battler.prototype.updatePosition;
+
+Sprite_Actor.prototype.updatePosition = function() {
+	if ($gameSystem.isSideView()) {
+		_Sprite_Battler_prototype_updatePosition.call(this);
+		return;
+	}
+	if (SceneManager._scene._statusWindow) {
+		var statusWindow = SceneManager._scene._statusWindow;
+		this.x = this._homeX - SceneManager._scene._partyCommandWindow.width + 80 + statusWindow.x;
+		this.y = this._homeY;
+	}
+};
 
 //=============================================================================
 // Game_Action
@@ -1279,6 +1305,7 @@
 			this.visible = $gameSystem.isDispHateLine();
 		};
 
+
 //=============================================================================
 // Spriteset_Battle
 //=============================================================================
@@ -1312,6 +1339,7 @@
 if ("AIManager" in window) {
 	AIManager_passAIConditions = AIManager.passAIConditions;
 	AIManager.passAIConditions = function(line) {
+		
 		// HATE ELEMENT
 		if (line.match(/HATE[ ]ELEMENT(.*)/i)) {
 			return this.conditionElementOfHateTarget();
