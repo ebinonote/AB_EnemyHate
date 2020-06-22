@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.07
+// Version: 1.08
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -190,13 +190,19 @@
  *     all           : 敵全員がヘイトします。
  *                     範囲が敵全員のスキルには上記targetを指定してください。
  *                     ヘイト計算はスキルの効果が発動するたびに行われるためです。
+ *     exceptUser    : スキルの使用者が敵の場合、使用者以外がヘイトします。
+ *     exceptTarget  : スキルの対象が敵の場合、対象以外がヘイトします。
  *     ========================================================================
  * 
  *     ========================================================================
  *    「誰を」の部分に設定できる文字列
  *     ------------------------------------------------------------------------
- *     user   : スキルの使用者がアクターの場合、使用者がヘイトされます。
- *     target : スキルの対象がアクターの場合、対象がヘイトされます。
+ *     user          : スキルの使用者がアクターの場合、使用者がヘイトされます。
+ *     target        : スキルの対象がアクターの場合、対象がヘイトされます。
+ *     exceptUser    : スキルの使用者がアクターの場合、使用者以外がヘイトされま
+ *                     す。
+ *     targetsTarget : スキルの対象が敵の場合、その敵が狙っているアクターがヘイ
+ *                     トされます。
  *     ========================================================================
  * 
  *     計算式では、上記のプラグインパラメータで使えるもののほかに
@@ -358,6 +364,11 @@
  * 更新履歴
  * ============================================================================
  * 
+ * Version 1.08
+ *   ヘイト値が同じとき、先頭に近いアクターが狙われるようにしました。
+ *   ヘイトコントロールの「誰が」に「exceptUser」「exceptTarget」、
+ *   「誰を」に「exceptUser」「targetsTarget」を追加しました。
+ * 
  * Version 1.07
  *   ヘイトラインの表示がおかしくなることがあったので修正しました。
  *   フロントビューでもDisplayHatelineがONになっていればヘイトラインを表示する
@@ -486,13 +497,13 @@
 			return false;
 		}
 		var hates = this._hates;
-		var max = 0;
+		var max = -1;
 		var mainTarget;
 		group.forEach(function(member) {
 			if (!member.isActor()) return false;
 			if (!member.isBattleMember()) return false;
 			var i = member.actorId();
-			if (max <= hates[i]) {
+			if (max < hates[i]) {
 				max = hates[i];
 				mainTarget = member;
 			}
@@ -514,12 +525,13 @@
 //=============================================================================
 	
 	Game_Party.prototype.hateTarget = function(hates) {
-		var max = 0;
+		// 
+		var max = -1;
 		var mainTarget;
 		this.aliveMembers().forEach(function(member) {
 			if (!member.isBattleMember()) return;
 			var i = member.actorId();
-			if (max <= hates[i]) {
+			if (max < hates[i]) {
 				max = hates[i];
 				mainTarget = member;
 			}
@@ -597,18 +609,13 @@
 				if (!this._item.object().meta.HATE_no) {
 					this.actorToActorVaryHate(target);
 				}
-				this.actorToActorVaryHate2(target);
 			} else {
 				if (!this._item.object().meta.HATE_no) {
 					this.actorToEnemyVaryHate(target);
 				}
-				this.actorToEnemyVaryHate2(target);
-			}
-		} else {
-			if (target.isActor()) {
-				this.enemyToActorVaryHate2(target);
 			}
 		}
+		this.controlHate(target);
 	};
 
 	Game_Action.prototype.actorToEnemyVaryHate = function(target) {
@@ -719,6 +726,8 @@
 		}*/
 	
 	};
+
+
 
 	Game_Action.prototype.actorToActorVaryHate = function(target) {
 		var result = target.result();
@@ -860,14 +869,15 @@
 		}
 	};
 
-	Game_Action.prototype.actorToEnemyVaryHate2 = function(target) {
+	Game_Action.prototype.controlHate = function(target) {
+		
 		var result = target.result();
 		var user = this.subject();
 		var a = user;
 		var b = target;
 		var v = $gameVariables._data;
 		var enemies = [];
-		var actor;
+		var actors = [];
 		var hate;
 		var action = this;
 
@@ -879,161 +889,164 @@
 			var HATE_enemy = hateControls[i].enemy;
 			var HATE_actor = hateControls[i].actor;
 			var HATE_formula = hateControls[i].formula;
-			if (HATE_enemy.match(/target/i)) {
-				enemies[0] = target;
-			} else if (HATE_enemy.match(/whoHateUser/i)) {
-				enemies = user.whoHateMe();
-			} else if (HATE_enemy.match(/all/i)) {
-				enemies = $gameTroop.aliveMembers();
-			} else {
-				continue;
-			}
-	
-			if (HATE_actor.match(/user/i)) {
-				actor = user;
-			} else {
-				continue;
-			}
+			var enemies = this.haterEnemies(target, HATE_enemy);
+			var actors = this.hatedActors(target, HATE_actor);
 			
 			enemies.forEach(function(enemy) {
 				if (!enemy.canHate()) return;
-				try {
-					hate = eval(HATE_formula);
-					if (isNaN(hate)) {
-						throw new Error("「" + HATE_formula + "」の計算結果は数値ではありません。");
+				actors.forEach(function(actor) {
+					try {
+						hate = eval(HATE_formula);
+						if (isNaN(hate)) {
+							throw new Error("「" + HATE_formula + "」の計算結果は数値ではありません。");
+						}
+					} catch(e) {
+						if (HateDebugMode) {
+							console.log(e.toString());
+						}
+						hate = 0;
 					}
-				} catch(e) {
-					if (HateDebugMode) {
-						console.log(e.toString());
-					}
-					hate = 0;
-				}
-				hate = Math.ceil(hate * actor.tgr);
-				if (hate != 0) action.makeSuccess(target);
-				enemy.hate(actor.actorId(), hate);
-				/*if (HateDebugMode) {
-					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}*/
+					hate = Math.ceil(hate * actor.tgr);
+					if (hate != 0) action.makeSuccess(target);
+					enemy.hate(actor.actorId(), hate);
+				});
 			});
 		}
 	};
 
-	Game_Action.prototype.actorToActorVaryHate2 = function(target) {
-		var result = target.result();
-		var user = this.subject();
-		var a = user;
-		var b = target;
-		var v = $gameVariables._data;
+	Game_Action.prototype.haterEnemies = function(target, HATE_enemy) {
+
+		if (HATE_enemy.match(/^user$/i)) {
+			return this.enemiesUser(target);
+
+		} else if (HATE_enemy.match(/^target$/i)) {
+			return this.enemiesTarget(target);
+
+		} else if (HATE_enemy.match(/^whoHateUser$/i)) {
+			return this.enemiesWhoHateUser(target);
+
+		} else if (HATE_enemy.match(/^whoHateTarget$/i)) {
+			return this.enemiesWhoHateTarget(target);
+
+		} else if (HATE_enemy.match(/^all$/i)) {
+			return $gameTroop.aliveMembers();
+
+		} else if (HATE_enemy.match(/^exceptUser$/i)) {
+			return this.enemiesExceptUser(target);
+
+		} else if (HATE_enemy.match(/^exceptTarget$/i)) {
+			return this.enemiesExceptTarget(target);
+
+		}
+		return [];
+	};
+
+	Game_Action.prototype.enemiesUser = function(target) {
 		var enemies = [];
-		var actor;
-		var hate;
-		var healPoint = Math.max(-result.hpDamage, 0);
-		var action = this;
-
-		var hateControls = this._item.object().hateControls;
-		for (var i = 0; i < hateControls.length; i++) {
-			var HATE_enemy = hateControls[i].enemy;
-			var HATE_actor = hateControls[i].actor;
-			var HATE_formula = hateControls[i].formula;
-			if (HATE_enemy.match(/whoHateTarget/i)) {
-				enemies = target.whoHateMe();
-			} else if (HATE_enemy.match(/whoHateUser/i)) {
-				enemies = user.whoHateMe();
-			} else if (HATE_enemy.match(/all/i)) {
-				enemies = $gameTroop.aliveMembers();
-			} else {
-				continue;
-			}
-	
-			if (HATE_actor.match(/user/i)) {
-				actor = user;
-			} else if (HATE_actor.match(/target/i)) {
-				actor = target;
-			} else {
-				continue;
-			}
-
-			enemies.forEach(function(enemy) {
-				if (!enemy.canHate()) return;
-				try {
-					hate = eval(HATE_formula);
-					if (isNaN(hate)) {
-						throw new Error("「" + HATE_formula + "」の計算結果は数値ではありません。");
-					}
-				} catch(e) {
-					if (HateDebugMode) {
-						console.log(e.toString());
-					}
-					hate = 0;
-				}
-				hate = Math.ceil(hate * actor.tgr);
-				if (hate != 0) action.makeSuccess(target);
-				enemy.hate(actor.actorId(), hate);
-				/*if (HateDebugMode) {
-					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}*/
-			});
-		}
-	};
-
-	Game_Action.prototype.enemyToActorVaryHate2 = function(target) {
-		var result = target.result();
 		var user = this.subject();
-		var a = user;
-		var b = target;
-		var v = $gameVariables._data;
+		if (user.isEnemy()) enemies.push(user);
+		return enemies;
+	};
+
+	Game_Action.prototype.enemiesTarget = function(target) {
 		var enemies = [];
-		var actor;
-		var hate;
-		var action = this;
+		if (target.isEnemy()) enemies.push(target);
+		return enemies;
+	};
 
-		var damage = Math.max(result.hpDamage, 0);
-		var MPDamage = Math.max(result.mpDamage, 0);
+	Game_Action.prototype.enemiesWhoHateUser = function(target) {
+		var enemies = [];
+		var user = this.subject();
+		if (user.isActor()) {
+			enemies = user.whoHateMe();
+		}
+		return enemies;
+	};
 
-		var hateControls = this._item.object().hateControls;
-		for (var i = 0; i < hateControls.length; i++) {
-			var HATE_enemy = hateControls[i].enemy;
-			var HATE_actor = hateControls[i].actor;
-			var HATE_formula = hateControls[i].formula;
+	Game_Action.prototype.enemiesWhoHateTarget = function(target) {
+		var enemies = [];
+		if (target.isActor()) {
+			enemies = target.whoHateMe();
+		}
+		return enemies;
+	};
 
-			if (HATE_enemy.match(/user/i)) {
-				enemies[0] = user;
-			} else if (HATE_enemy.match(/whoHateTarget/i)) {
-				enemies = target.whoHateMe();
-			} else if (HATE_enemy.match(/all/i)) {
-				enemies = $gameTroop.aliveMembers();
-			} else {
-				continue;
-			}
-	
-			if (HATE_actor.match(/target/i)) {
-				actor = target;
-			} else {
-				continue;
-			}
-
-			enemies.forEach(function(enemy) {
-				if (!enemy.canHate()) return;
-				try {
-					hate = eval(HATE_formula);
-					if (isNaN(hate)) {
-						throw new Error("「" + HATE_formula + "」の計算結果は数値ではありません。");
-					}
-				} catch(e) {
-					if (HateDebugMode) {
-						console.log(e.toString());
-					}
-					hate = 0;
-				}
-				hate = Math.ceil(hate * actor.tgr);
-				if (hate != 0) action.makeSuccess(target);
-				enemy.hate(actor.actorId(), hate);
-				/*if (HateDebugMode) {
-					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}*/
+	Game_Action.prototype.enemiesExceptUser = function(target) {
+		var enemies = [];
+		var user = this.subject();
+		if (user.isEnemy()) {
+			enemies = $gameTroop.aliveMembers().filter(function(enemy) {
+				return enemy != user;
 			});
 		}
+		return enemies;
 	};
+
+	Game_Action.prototype.enemiesExceptTarget = function(target) {
+		var enemies = [];
+		if (target.isEnemy()) {
+			enemies = $gameTroop.aliveMembers().filter(function(enemy) {
+				return enemy != target;
+			});
+		}
+		return enemies;
+	};
+
+
+	Game_Action.prototype.hatedActors = function (target, HATE_actor) {
+
+		if (HATE_actor.match(/^user$/i)) {
+			return this.actorsUser(target);
+
+		} else if (HATE_actor.match(/^target$/i)) {
+			return this.actorsTarget(target);
+
+		} else if (HATE_actor.match(/^exceptUser$/i)) {
+			return this.actorsExceptUser(target);
+
+		} else if (HATE_actor.match(/^targetsTarget$/i)) {
+			return this.actorsTargetsTarget(target);
+
+		}
+		return [];
+	};
+
+	Game_Action.prototype.actorsUser = function(target) {
+		var actors = [];
+		var user = this.subject();
+		if (user.isActor()) {
+			actors.push(user);
+		}
+		return actors;
+	};
+
+	Game_Action.prototype.actorsTarget = function(target) {
+		var actors = [];
+		if (target.isActor()) {
+			actors.push(target);
+		}
+		return actors;
+	};
+
+	Game_Action.prototype.actorsExceptUser = function(target) {
+		var actors = [];
+		var user = this.subject();
+		if (user.isActor()) {
+			actors = $gameParty.aliveMembers().filter(function(actor) {
+				return actor != user;
+			});
+		}
+		return actors;
+	};
+
+	Game_Action.prototype.actorsTargetsTarget = function(target) {
+		var actors = [];
+		if (target.isEnemy()) {
+			actors.push(target.hateTarget());
+		}
+		return actors;
+	};
+
 
 //=============================================================================
 // DataManager
@@ -1047,7 +1060,7 @@
 	};
 
 	DataManager.processHateNotetags = function(group) {
-		var note1 = /<HATE_control:[ ]*(user|target|whoHateUser|whoHateTarget|all)[ ]*,[ ]*(user|target)[ ]*,[ ]*(.+)[ ]*>/i;
+		var note1 = /<HATE_control:[ ]*(user|target|whoHateUser|whoHateTarget|all|exceptUser|exceptTarget)[ ]*,[ ]*(user|target|exceptUser|targetsTarget)[ ]*,[ ]*(.+)[ ]*>/i;
 		for (var n = 1; n < group.length; n++) {
 			var obj = group[n];
 			var notedata = obj.note.split(/[\r\n]+/);
