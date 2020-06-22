@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.08
+// Version: 1.09
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.09 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -250,7 +250,7 @@
  *     前述のヘイトを増減させるタグは無効化しません。
  * 
  * ============================================================================
- * ヘイトが溜まらなくなるエネミーのステート
+ * ヘイトが溜まらなくなるエネミーのステート - v1.03
  * ============================================================================
  * 
  * 例えば、「睡眠」など、状況が把握できなくなるステートにかかったとき、状況が
@@ -287,7 +287,7 @@
  * のIDで、右の青の文字が現在溜まっているヘイトです。
  * 
  * ============================================================================
- * 攻撃者以外へのヘイト減少
+ * 攻撃者以外へのヘイト減少 - v1.06
  * ============================================================================
  * 
  * 長期戦になると、ヘイトの差が開き、追いつけないものになってしまうことがありま
@@ -320,6 +320,18 @@
  * 攻撃者以外へのヘイトの現在値が0.85倍になる。
  * 
  * DebugMode を ON にしていれば、攻撃者以外のヘイトの現在値が表示されます。
+ * 
+ * ============================================================================
+ * ヘイト2番目以下のキャラへの攻撃 - v1.09
+ * ============================================================================
+ * 
+ * スキルのメモ欄：
+ *   <HATE_target: x>
+ *     ヘイトがx番目のキャラクターに攻撃します。
+ *   例：
+ *   <HATE_target: 3>
+ *     ヘイトが3番目に高いキャラクターに攻撃します。2人しかいなかった場合2番目
+ *     のキャラクターが攻撃されます。
  * 
  * ============================================================================
  * YEP_BattleAICore.jsの機能拡張
@@ -363,6 +375,10 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.09
+ *   ヘイトがX番目に高いアクターを狙うスキルのタグ<HATE_target: x>を追加しまし
+ *   た。
  * 
  * Version 1.08
  *   ヘイト値が同じとき、先頭に近いアクターが狙われるようにしました。
@@ -492,6 +508,10 @@
 		return $gameParty.hateTarget(this._hates);
 	}
 
+	Game_Enemy.prototype.hateTargetNumber = function(no) {
+		return $gameParty.hateTargetNumber(this._hates, no);
+	}
+
 	Game_Enemy.prototype.hateTargetOf = function(group) {
 		if (typeof this._hates === "undefined") {
 			return false;
@@ -538,6 +558,39 @@
 		});
 		return mainTarget;
 	};
+	Game_Party.prototype.hateTargetNumber = function(hates, no) {
+		var hatesArray = [];
+		var targetIndex = 0;
+
+		var mainTarget;
+		this.aliveMembers().forEach(function(member) {
+			if (!member.isBattleMember()) return;
+			var i = member.actorId();
+			
+			var hateObj = {};
+			hateObj.i = i;
+			hateObj.hate = hates[i];
+			hatesArray.push(hateObj);
+		});
+
+		// 降順ソート
+		hatesArray.sort(function(a,b){
+			if (a.hate > b.hate) return -1;
+			if (a.hate < b.hate) return 1;
+			return 0;
+		});
+		
+		// hatesArrayの(no-1)番目のiを選択。
+		// (no-1)番目がない場合最後のインデックスを選択。
+		if ((no-1) < hatesArray.length) {
+			targetIndex = hatesArray[no - 1].i;
+		} else {
+			targetIndex = hatesArray[hatesArray.length - 1].i;
+		}
+		mainTarget = $gameActors.actor(targetIndex);
+		return mainTarget;
+		
+	};
 	
 //=============================================================================
 // Game_Actor
@@ -556,8 +609,8 @@
 
 //=============================================================================
 // Game_Action
-//=============================================================================
-
+//=====
+	// 上書き
 	Game_Action.prototype.targetsForOpponents = function() {
 		var targets = [];
 		var unit = this.opponentsUnit();
@@ -567,10 +620,19 @@
 			}
 		} else if (this.isForOne()) {
 			if (this._targetIndex < 0) {
+				// 使用者がアクターだった場合
 				if (this._subjectActorId > 0) {
 					targets.push(unit.randomTarget());
+
+				// 使用者が敵キャラだった場合
 				} else {
-					targets.push(unit.hateTarget(this.subject().hates()));
+					// v1.09
+					if (this._item.object().meta.HATE_target) {
+						var no = Number(this._item.object().meta.HATE_target);
+						targets.push(unit.hateTargetNumber(this.subject().hates(), no));
+					} else {
+						targets.push(unit.hateTarget(this.subject().hates()));
+					}
 				}
 			} else {
 				targets.push(unit.smoothTarget(this._targetIndex));
