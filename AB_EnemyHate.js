@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.00
+// Version: 1.02
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -296,6 +296,22 @@
  * </AI Priority>
  * 
  * ============================================================================
+ * 更新履歴
+ * ============================================================================
+ * 
+ * Version 1.02
+ *   YEP_BattleEnginCore.js と一緒に動作させたときヘイトラインがチカチカする
+ *   問題を修正
+ * 
+ * Version 1.01
+ *   パーティにいないメンバーを後から加えた時にうまく動作しないバグを修正
+ *   ※この修正後も、パーティにいないメンバーを加えるときはあらかじめそのメンバ
+ *     ーを全回復するなどして$gameActorsに登録する必要があります。
+ * 
+ * Version 1.00
+ *   公開
+ * 
+ * ============================================================================
  * 利用規約
  * ============================================================================
  * 
@@ -328,9 +344,10 @@
 	Game_Enemy.prototype.setup = function(enemyId, x, y) {
 		Game_Enemy_prototype_setup.call(this, enemyId, x, y);
 		this._hates = [];
-		var allActors = $gameParty.allMembers();
+		var allActors = $gameActors._data;
 		var enemy = this;
 		allActors.forEach(function(actor) {
+			if (!actor) return;
 			enemy._hates[actor.actorId()] = Math.randomInt(10);
 		});
 	};
@@ -943,6 +960,7 @@
 			this._ey = 0;	
 			this._ax = 0;
 			this._ay = 0;
+			this.z = 0;
 
 			this.findEnemySprite();
 		};
