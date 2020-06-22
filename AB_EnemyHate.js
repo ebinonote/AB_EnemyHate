@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.12
+// Version: 1.13
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,71 +12,198 @@
 
 
 /*:
- * @plugindesc v1.12 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.13 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
  * @requiredAssets img/system/hateline
  * 
  * @param DisplayHateLine
+ * @text ヘイトライン表示
+ * @type boolean
+ * @on 表示
+ * @off 非表示
  * @desc ヘイトラインを表示するかどうかを決めます。
- * 0:非表示、1:表示
- * @default 0
+ * @default false
  * 
  * @param DebugMode
+ * @text デバッグモード
+ * @type boolean
+ * @on 表示
+ * @off 非表示
  * @desc ONにするとヘイトが何ポイント増加したかをコンソールに出力しま
- * す。 0:OFF、1:ON
- * @default 0
+ * す。
+ * @default false
  * 
  * @param DamageHateFormula
+ * @text ダメージヘイト式
  * @desc ダメージを与えたとき増加するヘイトの式です。
  * デフォルト： damage
  * @default damage
  * 
  * @param MPDamageHateFormula
+ * @text MPダメージヘイト式
  * @desc MPダメージを与えたとき増加するヘイトの式です。
  * デフォルト： MPDamage * 5
  * @default MPDamage * 5
  * 
  * @param HealHateFormula
+ * @text 回復ヘイト式
  * @desc 味方を回復したとき増加するヘイトの式です。
  * デフォルト： healPoint * 2
  * @default healPoint * 2
  * 
  * @param BuffHateFormula
+ * @text バフヘイト式
  * @desc 味方にバフを付加したとき増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
  * 
  * @param DebuffHateFormula
+ * @text デバフヘイト式
  * @desc 敵にデバフを付加したとき増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
  * 
  * @param StateToEnemyHateFormula
+ * @text 敵ステート付加ヘイト式
  * @desc 敵にステートを付加した時増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
  * 
  * @param StateToActorHateFormula
+ * @text 味方ステート付加ヘイト式
  * @desc 味方にステートを付加した時増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
  * 
  * @param RemoveStateHateFormula
+ * @text 味方ステート解除ヘイト式
  * @desc 味方からステートを取り除いたとき増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
  * 
  * @param ReduceOthersHate
+ * @text ヘイト減少モード
+ * @type boolean
+ * @on 減らす
+ * @off 減らさない
  * @desc ヘイトが増える行動をしたとき、味方のヘイトを減らしますか？
- * 減らさない：0, 減らす：1
- * @default 0
+ * @default false
  * 
  * @param OthersHateRateFormula
+ * @text 味方ヘイト減少式
+ * @type string
  * @desc 味方のヘイトを減らすときの割合の式です。
  * デフォルト： (100 - (point / enemy.atk)) / 100
  * @default (100 - (point / enemy.atk)) / 100
+ * 
+ * @param ---EnemyList---
+ * @text ---敵リスト---
+ * 
+ * @param ShowEnemyList
+ * @text 敵リスト表示
+ * @parent ---EnemyList---
+ * @type boolean
+ * @on はい
+ * @off いいえ
+ * @desc 敵リストを表示しますか？
+ * @default false
+ *
+ * @param EnemyListX
+ * @text 敵リスト位置X
+ * @parent ---EnemyList---
+ * @type number
+ * @desc 敵リストのX座標です。
+ * @default 0
+ *
+ * @param EnemyListY
+ * @text 敵リスト位置Y
+ * @parent ---EnemyList---
+ * @type number
+ * @desc 敵リストのY座標です。
+ * @default 0
+ * 
+ * @param HateIconList
+ * @text ヘイトアイコンリスト
+ * @parent ---EnemyList---
+ * @type string
+ * @desc ヘイト順位のアイコンリストです。左に行くほど高順位です。半角スペースで区切って並べてください。デフォルト：64 5 4 16
+ * @default 64 5 4 16
+ *
+ * @param EnemyListFontSize
+ * @text 敵リストフォントサイズ
+ * @parent ---EnemyList---
+ * @type number
+ * @desc 敵リストのフォントサイズです。
+ * @default 24
+ *
+ * @param EnemyListLineHeight
+ * @text 敵リスト行の高さ
+ * @parent ---EnemyList---
+ * @type number
+ * @desc 敵リストの行の高さです。
+ * @default 32
+ *
+ * @param EnemyListWidth
+ * @text 敵リスト幅
+ * @parent ---EnemyList---
+ * @type number
+ * @desc 敵リストの幅です。
+ * @default 240
+ *
+ * 
+ * 
+ * @param HateGaugeColor1
+ * @text ヘイトゲージ色1
+ * @parent ---EnemyList---
+ * @type number
+ * @desc ヘイトゲージの色1色目です。
+ * @default 2
+ * 
+ * @param HateGaugeColor2
+ * @text ヘイトゲージ色2
+ * @parent ---EnemyList---
+ * @type number
+ * @desc ヘイトゲージの色2色目です。
+ * @default 10
+ *
+ * 
+ * 
+ * @param ---HateGauge---
+ * @text ヘイトゲージ
+ * 
+ * @param ShowHateGauge
+ * @text ヘイトゲージ表示
+ * @parent ---HateGauge---
+ * @type boolean
+ * @on はい
+ * @off いいえ
+ * @desc パーティリストを表示しますか？
+ * @default false
+ * 
+ * @param HateGaugeWidth
+ * @text ヘイトゲージの幅
+ * @parent ---HateGauge---
+ * @type number
+ * @desc ヘイトゲージの幅です。
+ * @default 180
+ * 
+ * @param HateGaugeX
+ * @text ヘイトゲージのX位置
+ * @parent ---HateGauge---
+ * @type text
+ * @desc ヘイトゲージのメンバーごとのX座標の位置です。
+ * index:メンバーの番号、length:メンバーの人数
+ * @default Graphics.boxWidth /6 * (index +1)
+ * 
+ * @param HateGaugeY
+ * @text ヘイトゲージのY位置
+ * @parent ---HateGauge---
+ * @type text
+ * @desc ヘイトゲージのメンバーごとのY座標の位置です。
+ * index:メンバーの番号、length:メンバーの人数
+ * @default  400
  * 
  * @help
  * ============================================================================
@@ -87,13 +214,22 @@
  * ヘイトはバトル中の行動で変化します。
  * 
  * ============================================================================
- * プラグインコマンド - v1.10
+ * プラグインコマンド
  * ============================================================================
- * 
+ *  - v1.10
  * ShowHateLine
  *   ヘイトラインを表示します。
  * HideHateLine
  *   ヘイトラインを非表示にします。
+ *  - v1.13
+ * ShowEnemyHateList
+ *   エネミーリストを表示します。
+ * HideEnemyHateList
+ *   エネミーリストを非表示にします。
+ * ShowHateGauge
+ *   ヘイトゲージを表示します。
+ * HideHateGauge
+ *   ヘイトゲージを非表示にします。
  * 
  * ============================================================================
  * 自動的にたまるヘイト
@@ -342,6 +478,35 @@
  *     ヘイトが3番目に高いキャラクターに攻撃します。2人しかいなかった場合2番目
  *     のキャラクターが攻撃されます。
  * 
+ * 
+ * ============================================================================
+ * 敵リスト、パーティリスト - v1.13
+ * ============================================================================
+ * 
+ * ○敵リスト
+ *   選択中のアクターに対する敵全員のヘイトを見られるウィンドウ。
+ * 
+ * ◆表示されるもの
+ * ・選択中アクターの名前
+ * ・敵全員の
+ *   ・名前
+ *   ・選択中アクターのヘイト順位（ヘイトアイコン）
+ *   ・選択中アクターのゲージ
+ * 
+ * ○ヘイトゲージ
+ *   選択中、行動中の敵キャラのアクター全員へのヘイトを見られるウィンドウ。
+ * 
+ * ◆表示されるもの
+ * ・選択中敵キャラの名前
+ * ・アクター全員の
+ *   ・名前
+ *   ・そのアクターのヘイト順位（ヘイトアイコン）
+ *   ・そのアクターのゲージ
+ * 
+ * プラグインパラメータで各種設定ができます。
+ * プラグインコマンドでONとOFFの切り替えができます。
+ * （上記プラグインコマンド参照）
+ * 
  * ============================================================================
  * YEP_BattleAICore.jsの機能拡張
  * ============================================================================
@@ -384,6 +549,10 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.13
+ *   パーティリストと敵リストを作りました。
+ *   
  * 
  * Version 1.12
  *   ヘイトがマイナスの値のとき、ゲームが止まってしまうことがあるバグを修正しま
@@ -464,6 +633,19 @@
 	var RemoveStateHateFormula = (parameters['RemoveStateHateFormula'] || 0);
 	var ReduceOthersHate = (parameters['ReduceOthersHate'] == 1) ? true : false;
 	var OthersHateRateFormula = (parameters['OthersHateRateFormula'] || 0);
+	var ShowEnemyList = eval(parameters['ShowEnemyList']);
+	var EnemyListX = Number(parameters['EnemyListX']);
+	var EnemyListY = Number(parameters['EnemyListY']);
+	var HateIconList =parameters['HateIconList'].split(' ');
+	var EnemyListFontSize = Number(parameters['EnemyListFontSize']);
+	var EnemyListLineHeight = Number(parameters['EnemyListLineHeight']);
+	var EnemyListWidth = Number(parameters['EnemyListWidth']);
+	var HateGaugeColor1 = Number(parameters['HateGaugeColor1']);
+	var HateGaugeColor2 = Number(parameters['HateGaugeColor2']);
+	var ShowHateGauge = eval(parameters['ShowHateGauge']);
+	var HateGaugeWidth = Number(parameters['HateGaugeWidth']);
+	var HateGaugeX = String(parameters['HateGaugeX']);
+	var HateGaugeY = String(parameters['HateGaugeY']);
 
 //=============================================================================
 // Game_Interpreter
@@ -476,6 +658,14 @@
 			$gameSystem.setDispHateLine(true);
 		} else if (command === 'HideHateLine') {
 			$gameSystem.setDispHateLine(false);
+		} else if (command === 'ShowEnemyHateList') {
+			$gameSystem.setDispEnemyHateList(true);
+		} else if (command === 'HideEnemyHateList') {
+			$gameSystem.setDispEnemyHateList(false);
+		} else if (command === 'ShowHateGauge') {
+			$gameSystem.setDispHateGauge(true);
+		} else if (command === 'HideHateGauge') {
+			$gameSystem.setDispHateGauge(false);
 		}
 	};
 
@@ -495,6 +685,36 @@
 	Game_System.prototype.isDispHateLine = function() {
 		if (this._dispHateLine === undefined) this.initDispHateLine();
 		return this._dispHateLine;
+	};
+
+
+
+	Game_System.prototype.initDispEnemyHateList = function() {
+		this._dispEnemyHateList = ShowEnemyList;
+	};
+
+	Game_System.prototype.setDispEnemyHateList = function(value) {
+		this._dispEnemyHateList = value;
+	};
+
+	Game_System.prototype.isDispEnemyHateList = function() {
+		if (this._dispEnemyHateList === undefined) this.initDispEnemyHateList();
+		return this._dispEnemyHateList;
+	};
+
+
+
+	Game_System.prototype.initDispHateGauge = function() {
+		this._dispHateGauge = ShowHateGauge;
+	};
+
+	Game_System.prototype.setDispHateGauge = function(value) {
+		this._dispHateGauge = value;
+	};
+
+	Game_System.prototype.isDispHateGauge = function() {
+		if (this._dispHateGauge === undefined) this.initDispHateGauge();
+		return this._dispHateGauge;
 	};
 
 
@@ -546,6 +766,42 @@
 			}
 			enemy.multiplyHate(actor.actorId(), rate);
 		});
+	};
+
+	Game_Enemy.prototype.hateOrder = function(actorId) {
+		var hatesArray = [];
+		
+		if (typeof this._hates === "undefined") {
+			return false;
+		}
+		var hates = this._hates;
+		var max = -99999999999999999999;
+	
+		$gameParty.aliveMembers().forEach(function(member) {
+			if (!member.isBattleMember()) return;
+			var i = member.actorId();
+			
+			var hateObj = {};
+			hateObj.i = i;
+			hateObj.hate = hates[i];
+			hatesArray.push(hateObj);
+		});
+
+		// 降順ソート
+		hatesArray.sort(function(a,b){
+			if (a.hate > b.hate) return -1;
+			if (a.hate < b.hate) return 1;
+			return 0;
+		});
+		var hateOrder = null;
+		hatesArray.forEach(function(hateObj, i) {
+			if (hateObj.i == actorId) {
+				hateOrder = i;
+				return;
+			}
+		});
+		return hateOrder;
+		
 	};
 
 	Game_Enemy.prototype.multiplyHate = function(index, rate) {
@@ -645,7 +901,29 @@
 		return mainTarget;
 		
 	};
-	
+	var _Game_Party_prototype_refresh = Game_Party.prototype.refresh;
+	Game_Party.prototype.refresh = function() {
+		// 
+		_Game_Party_prototype_refresh.call(this);
+		if (this.inBattle()) {
+			SceneManager._scene.initHateGaugeWindows();
+		}
+	};
+	var _Game_Party_prototype_addActor = Game_Party.prototype.addActor;
+	Game_Party.prototype.addActor = function(actorId) {
+		_Game_Party_prototype_addActor.call(this, actorId);
+		if (this.inBattle()) {
+			SceneManager._scene.initHateGaugeWindows();
+		}
+	};
+	var _Game_Party_prototype_removeActor = Game_Party.prototype.removeActor;
+	Game_Party.prototype.removeActor = function(actorId) {
+		_Game_Party_prototype_removeActor.call(this, actorId);
+		
+		if (this.inBattle()) {
+			SceneManager._scene.initHateGaugeWindows();
+		}
+	};
 //=============================================================================
 // Game_Actor
 //=============================================================================
@@ -1331,11 +1609,404 @@ Sprite_Actor.prototype.updatePosition = function() {
 
 
 
+
+//=============================================================================
+// Window_ABEnemyList
+//=============================================================================
+
+
+
+	Window_ABEnemyList = function() {
+		this.initialize.apply(this, arguments);
+	};
+
+	Window_ABEnemyList.prototype = Object.create(Window_Base.prototype);
+	Window_ABEnemyList.prototype.constructor = Window_ABEnemyList;
+
+	Window_ABEnemyList.prototype.initialize = function(x, y, width, height) {
+		height = 9*EnemyListLineHeight + 18*2;
+		Window_Base.prototype.initialize.call(this, x, y, width, height);
+		this._actor = null;
+		this._enemy = null;
+		this._flag = "";
+    this.contents.fontSize = EnemyListFontSize;
+	};
+	Window_ABEnemyList.prototype.lineHeight = function() {
+		return EnemyListLineHeight;
+	};
+
+	Window_ABEnemyList.prototype.setActorAndShow = function(actor) {
+		this._actor = actor;
+		this._flag = "actor";
+		this.refresh();
+		this.show();
+	};
+
+	Window_ABEnemyList.prototype.setEnemyAndShow = function(enemy) {
+		//this._enemy = enemy;
+		//this._flag = "enemy";
+		//this.refresh();
+		//this.show();
+	};
+
+	Window_ABEnemyList.prototype.refresh = function() {
+		if (this._flag == "actor") {
+			this.showEnemyList();
+		} else if (this._flag == "enemy") {
+			this.ShowHateGauge();
+		} else {
+			this.contents.clear();
+		}
+	};
+
+
+	Window_ABEnemyList.prototype.showEnemyList = function() {
+		this.contents.clear();
+		var actor = this._actor;
+		if (!actor) return;
+		var cw = this.contents.width;
+		
+		this.drawText(actor.name(), 0, 0, cw);
+		var y = this.lineHeight();
+		var enemies = $gameTroop.aliveMembers();
+		for (var i=0, l=enemies.length; i<l; i++) {
+			var enemy = enemies[i];
+			var hates = enemy.hates();
+			var maxHate = -9999999;
+			for (var j=0,jl=hates.length; j<jl; j++) {
+				if (maxHate < hates[j]) {
+					maxHate = hates[j];
+				}
+			}
+			var hate = enemy._hates[actor.actorId()];
+			var hateOrder = enemy.hateOrder(actor.actorId());
+			// console.log(hateOrder);
+			this.drawIcon(Number(HateIconList[hateOrder]), 0, y);
+			var color1 = this.textColor(HateGaugeColor1);
+			var color2 = this.textColor(HateGaugeColor2);
+			var rate = hate/maxHate;
+			if (!rate) rate = 0;
+			this.drawGauge(32, y, cw-32, rate, color1, color2);
+			this.drawText(enemy.name(), 32, y, cw-32);
+			y += this.lineHeight();
+		}
+	};
+	Window_ABEnemyList.prototype.ShowHateGauge = function() {
+		this.contents.clear();
+		var enemy = this._enemy;
+		if (!enemy) return;
+		this.drawText(enemy.name(), 0, 0, cw);
+		var y = this.lineHeight();
+		var actors = $gameParty.battleMembers();
+		var hates = enemy.hates();
+		var maxHate = -9999999;
+		for (var i=0,l=hates.length; i<l; i++) {
+			if (maxHate < hates[i]) {
+				maxHate = hates[i];
+			}
+		}
+		var hatesArray = [];
+		$gameParty.aliveMembers().forEach(function(member) {
+			if (!member.isBattleMember()) return;
+			var i = member.actorId();
+			
+			var hateObj = {};
+			hateObj.i = i;
+			hateObj.hate = hates[i];
+			hatesArray.push(hateObj);
+		});
+
+		// 降順ソート
+		hatesArray.sort(function(a,b){
+			if (a.hate > b.hate) return -1;
+			if (a.hate < b.hate) return 1;
+			return 0;
+		});
+		for (var i=0, l=hatesArray.length; i<l; i++) {
+			var hate = hatesArray[i].hate;
+			var actorId = hatesArray[i].i;
+			var actor = $gameActors.actor(actorId);
+			
+			/*if (actor.isDead()) {
+				y += this.lineHeight();
+				continue;
+			}*/
+			var hate = enemy._hates[actorId];
+			var hateOrder = enemy.hateOrder(actorId);
+			// console.log(hateOrder);
+			this.drawIcon(Number(HateIconList[hateOrder]), 0, y);
+			var color1 = this.textColor(HateGaugeColor1);
+			var color2 = this.textColor(HateGaugeColor2);
+    	this.drawActorCharacter(actor, cw-40, y+40, 32, 32);
+
+			var rate = hate/maxHate;
+			if (!rate) rate = 0;
+			this.drawGauge(32, y, cw-32, rate, color1, color2);
+			this.drawText(actor.name(), 32, y, cw-32);
+			y += this.lineHeight();
+		}
+	};
+
+
+
+//=============================================================================
+// Window_ABHateGauge
+//=============================================================================
+
+
+
+	Window_ABHateGauge = function() {
+		this.initialize.apply(this, arguments);
+	};
+
+	Window_ABHateGauge.prototype = Object.create(Window_Base.prototype);
+	Window_ABHateGauge.prototype.constructor = Window_ABHateGauge;
+
+	Window_ABHateGauge.prototype.initialize = function(x, y, width, height) {
+		height = 1*EnemyListLineHeight;
+		Window_Base.prototype.initialize.call(this, x, y, width, height);
+		this._actor = null;
+		this._enemy = null;
+		this.anchor = 1;
+		this.setBackgroundType(2);
+    this.contents.fontSize = EnemyListFontSize;
+		this.show();
+	};
+	Window_ABHateGauge.prototype.lineHeight = function() {
+		return EnemyListLineHeight;
+	};
+	Window_ABHateGauge.prototype.standardPadding = function() {
+		return 0;
+	};
+
 	
+	Window_ABHateGauge.prototype.setActor = function(actor) {
+		this._actor = actor;
+		this.refresh();
+	};
+
+	Window_ABHateGauge.prototype.setEnemyAndShow = function(enemy) {
+		this._enemy = enemy;
+		this.refresh();
+		this.show();
+	};
+
+	Window_ABHateGauge.prototype.refresh = function() {
+		this.contents.clear();
+		var enemy = this._enemy;
+		var cw = this.contents.width;
+		if (!enemy) return;
+		var actor = this._actor;
+		if (!actor) return;
+		var hates = enemy.hates();
+		var hate = enemy._hates[actor._actorId];
+		var maxHate = -9999999;
+		for (var i=0,l=hates.length; i<l; i++) {
+			if (maxHate < hates[i]) {
+				maxHate = hates[i];
+			}
+		}
+		if (maxHate < 0) maxHate = 1;
+		var hateOrder = enemy.hateOrder(actor.actorId());
+		// console.log(hateOrder);
+		this.drawIcon(Number(HateIconList[hateOrder]), 0, 0);
+		var color1 = this.textColor(HateGaugeColor1);
+		var color2 = this.textColor(HateGaugeColor2);
+    //this.drawActorCharacter(actor, cw-40, y+40, 32, 32);
+		var rate = hate/maxHate;
+		if (!rate) rate = 0;
+		this.drawGauge(32, 0, cw-32, rate, color1, color2);
+	
+		this.drawText(enemy.name(), 32, 0, cw-32);
+		//y += this.lineHeight();
+	
+	};
+
+//=============================================================================
+// Scene_Battle
+//=============================================================================
+	var Scene_Battle_prototype_createAllWindows = 
+		Scene_Battle.prototype.createAllWindows;
+	Scene_Battle.prototype.createAllWindows = function() {
+		Scene_Battle_prototype_createAllWindows.call(this);
+		this.createHateWindows();
+	};
+
+	Scene_Battle.prototype.createHateWindows = function() {
+		if ($gameSystem.isDispEnemyHateList()) {
+			this._ABEnemyListWindow = new Window_ABEnemyList(EnemyListX, EnemyListY, EnemyListWidth, Window_Base.prototype.fittingHeight(9));
+			this.addWindow(this._ABEnemyListWindow);
+		}
+		if ($gameSystem.isDispHateGauge()) {
+			this.initHateGaugeWindows();
+		}
+	};
+
+	Scene_Battle.prototype.initHateGaugeWindows = function() {
+		//console.log("initgauge");
+		if (!$gameSystem.isDispHateGauge()) {
+			return;
+		}
+		if (this.hateGaugeWindows) {
+			var enemy = this.hateGaugeWindows[0]._enemy;
+			for (var i=0,l=this.hateGaugeWindows.length; i<l; i++) {
+				this._windowLayer.removeChild(this.hateGaugeWindows[i]);
+			}
+		}
+		this.hateGaugeWindows = [];
+		var actors = $gameParty.battleMembers()
+		for (var i=0,l=actors.length; i<l; i++) {
+			var actor = actors[i];
+			var index = i;
+			var length = l;
+			var x = eval(HateGaugeX);
+			var y = eval(HateGaugeY);
+			var w = HateGaugeWidth;
+		
+			this.hateGaugeWindows[i] = new Window_ABHateGauge(x, y, w);
+			this.hateGaugeWindows[i].setActor(actor);
+			if (enemy) {
+				this.hateGaugeWindows[i].setEnemyAndShow(enemy);
+			}
+			this.addWindow(this.hateGaugeWindows[i]);
+		}
+	}
+
+	var _Scene_Battle_prototype_startActorCommandSelection = Scene_Battle.prototype.startActorCommandSelection;
+	Scene_Battle.prototype.startActorCommandSelection = function() {
+			_Scene_Battle_prototype_startActorCommandSelection.call(this);
+			if (!$gameSystem.isDispEnemyHateList()) return;
+			this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+	};
+	var _Scene_Battle_prototype_onSkillCancel = Scene_Battle.prototype.onSkillCancel;
+	Scene_Battle.prototype.onSkillCancel = function() {
+    _Scene_Battle_prototype_onSkillCancel.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+	};
+	var _Scene_Battle_prototype_onItemCancel = Scene_Battle.prototype.onItemCancel;
+	Scene_Battle.prototype.onItemCancel = function() {
+		_Scene_Battle_prototype_onItemCancel.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.setActorAndShow(BattleManager.actor());
+	};
+
+
+	var _Scene_Battle_prototype_endCommandSelection = Scene_Battle.prototype.endCommandSelection;
+	Scene_Battle.prototype.endCommandSelection = function() {
+    _Scene_Battle_prototype_endCommandSelection.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.hide();
+	};
+
+
+	Scene_Battle.prototype.selectActor = function(actor) {
+		if (this._ABEnemyListWindow) this._ABEnemyListWindow.setActorAndShow(actor);
+	};
+	Scene_Battle.prototype.selectEnemy = function(enemy) {
+		if (this._ABEnemyListWindow) this._ABEnemyListWindow.setEnemyAndShow(enemy);
+		if (this.hateGaugeWindows) this.setEnemyToAllHateGaugeWindow(enemy);
+	};
+	Scene_Battle.prototype.refreshHateWindow = function() {
+		if (this._ABEnemyListWindow) this._ABEnemyListWindow.refresh();
+		if (this.hateGaugeWindows) this.refreshAllHateGaugeWindow();
+	};
+
+	
+	Scene_Battle.prototype.setEnemyToAllHateGaugeWindow = function(enemy) {
+		if (!this.hateGaugeWindows) return;
+		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
+			this.hateGaugeWindows[i].setEnemyAndShow(enemy);
+		}
+	};
+	Scene_Battle.prototype.refreshAllHateGaugeWindow = function() {
+		if (!this.hateGaugeWindows) return;
+		for (var i=0,l=this.hateGaugeWindows.length; i<l;i++) {
+			this.hateGaugeWindows[i].refresh();
+		}
+	};
+
+	var _Scene_Battle_prototype_commandSkill = Scene_Battle.prototype.commandSkill;
+	Scene_Battle.prototype.commandSkill = function() {
+		_Scene_Battle_prototype_commandSkill.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.hide();
+	};
+	var _Scene_Battle_prototype_commandItem = Scene_Battle.prototype.commandItem;
+Scene_Battle.prototype.commandItem = function() {
+    _Scene_Battle_prototype_commandItem.call(this);
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		this._ABEnemyListWindow.hide();
+};
+//=============================================================================
+// BattleManager
+//=============================================================================
+	var _BattleManager_changeActor = BattleManager.changeActor;
+	BattleManager.changeActor = function(newActorIndex, lastActorActionState) {
+		_BattleManager_changeActor.call(this, newActorIndex, lastActorActionState);
+		if (!this.actor()) return;
+    SceneManager._scene.selectActor(this.actor());
+	};
+var _BattleManager_startAction = BattleManager.startAction;
+BattleManager.startAction = function() {
+    _BattleManager_startAction.call(this);
+		var subject = this._subject;
+		if (subject.isActor()) {
+			SceneManager._scene.selectActor(subject);
+		}
+		if (subject.isEnemy()) {
+			SceneManager._scene.selectEnemy(subject);
+		}
+};
+var _BattleManager_invokeAction = BattleManager.invokeAction;
+BattleManager.invokeAction = function(subject, target) {
+	_BattleManager_invokeAction.call(this, subject, target);
+	
+	    SceneManager._scene.refreshHateWindow();
+};
+/*
+	var _BattleManager_endAction = BattleManager.endAction
+
+	BattleManager.endAction = function() {
+			_BattleManager_endAction.call(this);
+			
+	    SceneManager._scene.refreshHateWindow();
+	};
+
+*/
+//=============================================================================
+// Window_BattleEnemy
+//=============================================================================
+
+var _Window_BattleEnemy_prototype_select = Window_BattleEnemy.prototype.select;
+Window_BattleEnemy.prototype.select = function(index) {
+    _Window_BattleEnemy_prototype_select.call(this, index);
+    SceneManager._scene.selectEnemy(this.enemy());
+};
+//=============================================================================
+// Window_BattleActor
+//=============================================================================
+
+var _Window_BattleActor_prototype_select = Window_BattleActor.prototype.select;
+Window_BattleActor.prototype.select = function(index) {
+    _Window_BattleActor_prototype_select.call(this, index);
+    SceneManager._scene.selectActor(this.actor());
+};
+
+//=============================================================================
+// 遊び
+//=============================================================================
+
+
+
+
 })();
 //=============================================================================
 // YEP_BattleAICore.js
 //=============================================================================
+
+
+
 if ("AIManager" in window) {
 	AIManager_passAIConditions = AIManager.passAIConditions;
 	AIManager.passAIConditions = function(line) {
