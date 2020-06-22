@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.05
+// Version: 1.06
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -67,6 +67,16 @@
  * @desc 味方からステートを取り除いたとき増加するヘイトの式です。
  * デフォルト： enemy.atk * 4
  * @default enemy.atk * 4
+ * 
+ * @param ReduceOthersHate
+ * @desc ヘイトが増える行動をしたとき、味方のヘイトを減らしますか？
+ * 減らさない：0, 減らす：1
+ * @default 0
+ * 
+ * @param OthersHateRateFormula
+ * @desc 味方のヘイトを減らすときの割合の式です。
+ * デフォルト： (100 - (point / enemy.atk)) / 100
+ * @default (100 - (point / enemy.atk)) / 100
  * 
  * @help
  * ============================================================================
@@ -271,6 +281,41 @@
  * のIDで、右の青の文字が現在溜まっているヘイトです。
  * 
  * ============================================================================
+ * 攻撃者以外へのヘイト減少
+ * ============================================================================
+ * 
+ * 長期戦になると、ヘイトの差が開き、追いつけないものになってしまうことがありま
+ * す。そこで、アクターがヘイトを稼いだとき、他のアクターへのヘイトが減少する
+ * 機能を追加しました。以下のプラグインパラメータで設定ができます。
+ * 
+ * ReduceOthersHate
+ *   この機能を使うかどうかを設定します。デフォルトではOFFになっています。
+ * 
+ * OthersHateRateFormula
+ *   この式の計算結果が現在のヘイトに掛けられます。
+ *   計算式では、
+ *   --------------------------------------------------------------------------
+ *   増加したヘイト           ： point
+ *   敵キャラ                 ： enemy
+ *   ヘイトが減少するアクター ： actor
+ *   --------------------------------------------------------------------------
+ *   を使えます。
+ * 
+ * ---例---
+ * デフォルトの場合
+ * (100 - (point / enemy.atk)) / 100
+ * 
+ * 攻撃者が敵キャラの攻撃力の4倍のヘイトを稼いだとき、
+ * (100 - 4) / 100 = 0.96
+ * 攻撃者以外へのヘイトの現在値が0.96倍になる。
+ * 
+ * 攻撃者が敵キャラの攻撃力の15倍のヘイトを稼いだとき、
+ * (100 - 15) / 100 = 0.85
+ * 攻撃者以外へのヘイトの現在値が0.85倍になる。
+ * 
+ * DebugMode を ON にしていれば、攻撃者以外のヘイトの現在値が表示されます。
+ * 
+ * ============================================================================
  * YEP_BattleAICore.jsの機能拡張
  * ============================================================================
  * 
@@ -312,6 +357,10 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.06
+ *   攻撃者以外へのヘイト減少機能を追加しました。
+ *   エラー表示を見やすくしました。
  * 
  * Version 1.05
  *   RPGツクールMVのバージョン 1.1.0 で追加された「未使用ファイルを含まない」
@@ -361,6 +410,8 @@
 	var StateToEnemyHateFormula = (parameters['StateToEnemyHateFormula'] || 0);
 	var StateToActorHateFormula = (parameters['StateToActorHateFormula'] || 0);
 	var RemoveStateHateFormula = (parameters['RemoveStateHateFormula'] || 0);
+	var ReduceOthersHate = (parameters['ReduceOthersHate'] == 1) ? true : false;
+	var OthersHateRateFormula = (parameters['OthersHateRateFormula'] || 0);
 //=============================================================================
 // Game_Enemy
 //=============================================================================
@@ -383,6 +434,42 @@
 	Game_Enemy.prototype.hate = function(index, point) {
 		this._hates[index] += point;
 		if (this._hates[index] < 0) this._hates[index] = 0;
+		if (HateDebugMode) {
+			console.log(this.name() + "の" + $gameActors.actor(index).name() + "へのヘイトが" + point + "ポイント増加");
+		}
+		if (point > 0) this.reduceOthersHates(index, point);
+	};
+
+	Game_Enemy.prototype.reduceOthersHates = function(index, point) {
+		if (!ReduceOthersHate) return;
+		var enemy = this;
+		var actors = $gameParty.battleMembers();
+		actors.forEach(function(actor) {
+			if (actor.actorId() == index) return;
+			var rate = 1;
+			try {
+				rate = eval(OthersHateRateFormula);
+				if (isNaN(rate)) {
+					throw new Error("「" + OthersHateRateFormula + "」の計算結果は数値ではありません。");
+				}
+			} catch (e) {
+				if (HateDebugMode) {
+					console.log(e.toString());
+				}
+				rate = 1;
+			}
+			enemy.multiplyHate(actor.actorId(), rate);
+		});
+	};
+
+	Game_Enemy.prototype.multiplyHate = function(index, rate) {
+		if (rate < 0) return;
+		var hate = this._hates[index] * rate;
+		hate = Math.round(hate);
+		this._hates[index] = hate;
+		if (HateDebugMode) {
+			console.log(this.name() + "の" + $gameActors.actor(index).name() + "へのヘイトが" + hate + "になった");
+		}
 	};
 
 	Game_Enemy.prototype.hateTarget = function() {
@@ -543,7 +630,7 @@
 				}
 			} catch (e) {
 				if (HateDebugMode) {
-					console.log(e);
+					console.log(e.toString());
 				}
 				add = 0;
 			}
@@ -559,7 +646,7 @@
 				}
 			} catch (e) {
 				if (HateDebugMode) {
-					console.log(e);
+					console.log(e.toString());
 				}
 				add = 0;
 			}
@@ -582,7 +669,7 @@
 					}
 				} catch (e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					add = 0;
 				}
@@ -594,7 +681,7 @@
 					}
 				} catch (e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					add = 0;
 				}
@@ -611,7 +698,7 @@
 				}
 			} catch (e) {
 				if (HateDebugMode) {
-					console.log(e);
+					console.log(e.toString());
 					add = 0;
 				}
 			}
@@ -622,9 +709,9 @@
 		hate = Math.ceil(hate * user.tgr);
 
 		target.hate(user.actorId(), hate);
-		if (HateDebugMode) {
+		/*if (HateDebugMode) {
 			console.log(target.name() + "の" + user.name() + "へのヘイトが" + hate + "ポイント増加");
-		}
+		}*/
 	
 	};
 
@@ -653,7 +740,7 @@
 					}
 				} catch (e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					add = 0;
 				}
@@ -674,7 +761,7 @@
 						}
 					} catch (e) {
 						if (HateDebugMode) {
-							console.log(e);
+							console.log(e.toString());
 						}
 						add = 0;
 					}
@@ -686,7 +773,7 @@
 						}
 					} catch (e) {
 						if (HateDebugMode) {
-							console.log(e);
+							console.log(e.toString());
 						}
 						add = 0;
 					}
@@ -710,7 +797,7 @@
 						}
 					} catch (e) {
 						if (HateDebugMode) {
-							console.log(e);
+							console.log(e.toString());
 						}
 						add = 0;
 					}
@@ -722,7 +809,7 @@
 						}
 					} catch (e) {
 						if (HateDebugMode) {
-							console.log(e);
+							console.log(e.toString());
 						}
 						add = 0;
 					}
@@ -734,7 +821,7 @@
 						}
 					} catch (e) {
 						if (HateDebugMode) {
-							console.log(e);
+							console.log(e.toString());
 						}
 						add = 0;
 					}
@@ -751,7 +838,7 @@
 					}
 				} catch (e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					add = 0;
 				}
@@ -762,9 +849,9 @@
 			hate = Math.ceil(hate * user.tgr);
 
 			enemy.hate(user.actorId(), hate);
-			if (HateDebugMode) {
+			/*if (HateDebugMode) {
 				console.log(enemy.name() + "の" + user.name() + "へのヘイトが" + hate + "ポイント増加");
-			}
+			}*/
 		}
 	};
 
@@ -812,16 +899,16 @@
 					}
 				} catch(e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					hate = 0;
 				}
 				hate = Math.ceil(hate * actor.tgr);
 				if (hate != 0) action.makeSuccess(target);
 				enemy.hate(actor.actorId(), hate);
-				if (HateDebugMode) {
+				/*if (HateDebugMode) {
 					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}
+				}*/
 			});
 		}
 	};
@@ -870,16 +957,16 @@
 					}
 				} catch(e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					hate = 0;
 				}
 				hate = Math.ceil(hate * actor.tgr);
 				if (hate != 0) action.makeSuccess(target);
 				enemy.hate(actor.actorId(), hate);
-				if (HateDebugMode) {
+				/*if (HateDebugMode) {
 					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}
+				}*/
 			});
 		}
 	};
@@ -929,16 +1016,16 @@
 					}
 				} catch(e) {
 					if (HateDebugMode) {
-						console.log(e);
+						console.log(e.toString());
 					}
 					hate = 0;
 				}
 				hate = Math.ceil(hate * actor.tgr);
 				if (hate != 0) action.makeSuccess(target);
 				enemy.hate(actor.actorId(), hate);
-				if (HateDebugMode) {
+				/*if (HateDebugMode) {
 					console.log(enemy.name() + "の" + actor.name() + "へのヘイトが" + hate + "ポイント増加");
-				}
+				}*/
 			});
 		}
 	};
