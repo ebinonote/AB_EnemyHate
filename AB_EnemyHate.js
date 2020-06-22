@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.06
+// Version: 1.07
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -19,7 +19,7 @@
  * @requiredAssets img/system/hateline
  * 
  * @param DisplayHateLine
- * @desc ヘイトラインを表示するかどうかを決めます。※サイドビューのみ
+ * @desc ヘイトラインを表示するかどうかを決めます。
  * 0:非表示、1:表示
  * @default 0
  * 
@@ -357,6 +357,11 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.07
+ *   ヘイトラインの表示がおかしくなることがあったので修正しました。
+ *   フロントビューでもDisplayHatelineがONになっていればヘイトラインを表示する
+ *   ようにしました。
  * 
  * Version 1.06
  *   攻撃者以外へのヘイト減少機能を追加しました。
@@ -1124,14 +1129,15 @@
 			}
 		};
 		HateLine.prototype.updatePosition = function() {
-			var dx = this._ax - this._ex;
-			var dy = this._ay - this._ey;
+			var dx = this._ex - this._ax;
+			var dy = this._ey - this._ay;
 			var distance = Math.floor(Math.pow(dx*dx+dy*dy,0.5));
 
-			this.x = this._ex;
-			this.y = this._ey;
+			this.x = this._ax;
+			this.y = this._ay;
 			this.scale.y = distance / this.height;
-			this.rotation = Math.PI * 3 / 2 + Math.atan(dy/dx);
+			//this.rotation = Math.PI * 3 / 2 + Math.atan(dy/dx);
+			this.rotation = Math.atan2(dy,dx) - Math.PI / 2;
 		};
 
 		HateLine.prototype.update = function() {
@@ -1162,7 +1168,7 @@
 		var Spriteset_Battle_prototype_createLowerLayer = Spriteset_Battle.prototype.createLowerLayer;
 		Spriteset_Battle.prototype.createLowerLayer = function() {
 			Spriteset_Battle_prototype_createLowerLayer.call(this);
-			if ($gameSystem.isSideView()) this.createHateLines();
+			/*if ($gameSystem.isSideView())*/ this.createHateLines();
 		}
 		
 	}
