@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.15
+// Version: 1.16
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.15 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.16 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -559,6 +559,10 @@
  * 更新履歴
  * ============================================================================
  * 
+ * Version 1.16
+ *   ヘイトゲージと敵リストを戦闘中にON、OFFにできるように修正しました。
+ *   敗北時、逃走時もヘイトゲージを非表示にするように変更しました。
+ * 
  * Version 1.15
  *   攻撃時、エラーが出てゲームが停止してしまう不具合を修正しました。
  * 
@@ -681,12 +685,21 @@
 			$gameSystem.setDispHateLine(false);
 		} else if (command === 'ShowEnemyHateList') {
 			$gameSystem.setDispEnemyHateList(true);
+			if ($gameParty.inBattle()) {
+		    SceneManager._scene._ABEnemyListWindow.show();
+			}
 		} else if (command === 'HideEnemyHateList') {
 			$gameSystem.setDispEnemyHateList(false);
+			if ($gameParty.inBattle()) {
+		    SceneManager._scene._ABEnemyListWindow.hide();
+			}
 		} else if (command === 'ShowHateGauge') {
 			$gameSystem.setDispHateGauge(true);
 		} else if (command === 'HideHateGauge') {
 			$gameSystem.setDispHateGauge(false);
+			if ($gameParty.inBattle()) {
+				SceneManager._scene.hideHateWindow();
+			}
 		}
 	};
 
@@ -1655,6 +1668,16 @@ Sprite_Actor.prototype.updatePosition = function() {
 	Window_ABEnemyList.prototype.lineHeight = function() {
 		return EnemyListLineHeight;
 	};
+	var _Window_ABEnemyList_prototype_update = Window_ABEnemyList.prototype.update;
+	Window_ABEnemyList.prototype.update = function() {
+		_Window_ABEnemyList_prototype_update.call(this);
+		//this.visible = $gameSystem.isDispEnemyHateList();
+	};
+	var _Window_ABEnemyList_prototype_show = Window_ABEnemyList.prototype.show;
+	Window_ABEnemyList.prototype.show = function() {
+		if (!$gameSystem.isDispEnemyHateList()) return;
+		_Window_ABEnemyList_prototype_show.call(this);
+	};
 
 	Window_ABEnemyList.prototype.setActorAndShow = function(actor) {
 		this._actor = actor;
@@ -1800,6 +1823,16 @@ Sprite_Actor.prototype.updatePosition = function() {
 		return 0;
 	};
 
+	var _Window_ABHateGauge_prototype_update = Window_ABHateGauge.prototype.update;
+	Window_ABHateGauge.prototype.update = function() {
+		_Window_ABHateGauge_prototype_update.call(this);
+		//this.visible = $gameSystem.isDispHateGauge();
+	};
+	var Window_ABHateGauge_prototype_show = Window_ABHateGauge.prototype.show;
+	Window_ABHateGauge.prototype.show = function() {
+		if (!$gameSystem.isDispHateGauge()) return;
+		Window_ABHateGauge_prototype_show.call(this);
+	};
 	
 	Window_ABHateGauge.prototype.setActor = function(actor) {
 		this._actor = actor;
@@ -1861,16 +1894,20 @@ Sprite_Actor.prototype.updatePosition = function() {
 			this._ABEnemyListWindow = new Window_ABEnemyList(EnemyListX, EnemyListY, EnemyListWidth, Window_Base.prototype.fittingHeight(9));
 			this.addWindow(this._ABEnemyListWindow);
 		}
-		if ($gameSystem.isDispHateGauge()) {
+		// v1.16
+		this.initHateGaugeWindows();
+		/*if ($gameSystem.isDispHateGauge()) {
 			this.initHateGaugeWindows();
-		}
+		}*/
 	};
 
 	Scene_Battle.prototype.initHateGaugeWindows = function() {
 		//console.log("initgauge");
+		// v1.16
+/*
 		if (!$gameSystem.isDispHateGauge()) {
 			return;
-		}
+		}*/
 		if (this.hateGaugeWindows) {
 			var enemy = this.hateGaugeWindows[0]._enemy;
 			for (var i=0,l=this.hateGaugeWindows.length; i<l; i++) {
@@ -2036,8 +2073,30 @@ var _BattleManager_processVictory = BattleManager.processVictory
 BattleManager.processVictory = function() {
 		_BattleManager_processVictory.call(this);
     SceneManager._scene.hideHateWindow();
+    SceneManager._scene._ABEnemyListWindow.hide();
+};
+var _BattleManager_processDefeat = BattleManager.processDefeat;
+
+BattleManager.processDefeat = function() {
+	_BattleManager_processDefeat.call(this);
+	SceneManager._scene.hideHateWindow();
+    SceneManager._scene._ABEnemyListWindow.hide();
 };
 
+var _BattleManager_processAbort = BattleManager.processAbort;
+
+BattleManager.processAbort = function() {
+	_BattleManager_processAbort.call(this);
+	SceneManager._scene.hideHateWindow();
+    SceneManager._scene._ABEnemyListWindow.hide();
+};
+var _BattleManager_processEscape = BattleManager.processEscape;
+
+BattleManager.processEscape = function() {
+	_BattleManager_processEscape.call(this);
+	SceneManager._scene.hideHateWindow();
+    SceneManager._scene._ABEnemyListWindow.hide();
+};
 /*
 	var _BattleManager_invokeAction = BattleManager.invokeAction;
 	BattleManager.invokeAction = function(subject, target) {
