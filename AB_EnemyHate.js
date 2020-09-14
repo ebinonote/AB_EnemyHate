@@ -1890,10 +1890,10 @@ Sprite_Actor.prototype.updatePosition = function() {
 	};
 
 	Scene_Battle.prototype.createHateWindows = function() {
-		if ($gameSystem.isDispEnemyHateList()) {
+		//if ($gameSystem.isDispEnemyHateList()) {
 			this._ABEnemyListWindow = new Window_ABEnemyList(EnemyListX, EnemyListY, EnemyListWidth, Window_Base.prototype.fittingHeight(9));
 			this.addWindow(this._ABEnemyListWindow);
-		}
+		//}
 		// v1.16
 		this.initHateGaugeWindows();
 		/*if ($gameSystem.isDispHateGauge()) {
