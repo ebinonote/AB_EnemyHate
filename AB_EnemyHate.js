@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.16
+// Version: 1.18
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.16 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.18 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -1894,7 +1894,12 @@ Sprite_Actor.prototype.updatePosition = function() {
 			this._ABEnemyListWindow = new Window_ABEnemyList(EnemyListX, EnemyListY, EnemyListWidth, Window_Base.prototype.fittingHeight(9));
 			this.addWindow(this._ABEnemyListWindow);
 		//}
+		// v1.18
+		if (!$gameSystem.isDispEnemyHateList()) {
+			this._ABEnemyListWindow.hide();
+		}
 		// v1.16
+		
 		this.initHateGaugeWindows();
 		/*if ($gameSystem.isDispHateGauge()) {
 			this.initHateGaugeWindows();
