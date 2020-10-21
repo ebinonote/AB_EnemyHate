@@ -1,6 +1,6 @@
 ﻿// =============================================================================
 // AB_EnemyHate.js
-// Version: 1.17
+// Version: 1.18
 // -----------------------------------------------------------------------------
 // Copyright (c) 2015 ヱビ
 // Released under the MIT license
@@ -12,7 +12,7 @@
 
 
 /*:
- * @plugindesc v1.17 敵が最もヘイトの高いアクターを狙います。
+ * @plugindesc v1.18 敵が最もヘイトの高いアクターを狙います。
  * ヘイトはバトル中の行動で変化します。
  * @author ヱビ
  *
@@ -558,6 +558,10 @@
  * ============================================================================
  * 更新履歴
  * ============================================================================
+ * 
+ * Version 1.18
+ *   敵リストを表示しておらず、ヘイトがマイナスになったとき、エラーが出て止まっ
+ *   てしまうバグを修正しました。
  * 
  * Version 1.17
  *   敵リストを非表示にできなくなっていた不具合を修正しました。
@@ -1712,6 +1716,7 @@ Sprite_Actor.prototype.updatePosition = function() {
 		var actor = this._actor;
 		if (!actor) return;
 		var cw = this.contents.width;
+		if (!$gameSystem.isDispEnemyHateList()) return;
 		
 		this.drawText(actor.name(), 0, 0, cw);
 		var y = this.lineHeight();
@@ -1742,6 +1747,7 @@ Sprite_Actor.prototype.updatePosition = function() {
 		this.contents.clear();
 		var enemy = this._enemy;
 		if (!enemy) return;
+		if (!$gameSystem.isDispEnemyHateList()) return;
 		this.drawText(enemy.name(), 0, 0, cw);
 		var y = this.lineHeight();
 		var actors = $gameParty.battleMembers();
@@ -1853,6 +1859,7 @@ Sprite_Actor.prototype.updatePosition = function() {
 		this.contents.clear();
 		var enemy = this._enemy;
 		var cw = this.contents.width;
+		if (!$gameSystem.isDispHateGauge()) return;
 		if (!enemy) return;
 		var actor = this._actor;
 		if (!actor) return;
